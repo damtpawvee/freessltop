@@ -204,7 +204,7 @@ function timingXml(effects, shapes) {
       ? `<p:tgtEl><p:spTgt spid="${spid}"><p:txEl><p:pRg st="${fx.para}" end="${fx.para}"/></p:txEl></p:spTgt></p:tgtEl>`
       : `<p:tgtEl><p:spTgt spid="${spid}"/></p:tgtEl>`;
     const dur = fx.dur || 600;
-    const isEntrance = !['grow', 'pulse', 'spin', 'path', 'fadeOut', 'flyOut'].includes(fx.type);
+    const isEntrance = !['grow', 'pulse', 'spin', 'path', 'fadeOut', 'flyOut', 'float', 'teeter'].includes(fx.type);
     // PowerPoint keeps a build entry (grpId) for auto shapes and text boxes, not for pictures.
     let grp = '';
     if (shape.kind === 'sp' && isEntrance) {
@@ -224,8 +224,15 @@ function timingXml(effects, shapes) {
       `<p:tav tm="0"><p:val><p:strVal val="${from}"/></p:val></p:tav>` +
       `<p:tav tm="100000"><p:val><p:strVal val="${to}"/></p:val></p:tav></p:tavLst></p:anim>`;
     const repeat = fx.repeat ? ` repeatCount="${fx.repeat === 'forever' ? 'indefinite' : Math.round(fx.repeat * 1000)}"` : '';
+    // Property animation through several key frames: [[time 0..100, value], ...].
+    const keyed = (attr, frames) =>
+      `<p:anim calcmode="lin" valueType="num"><p:cBhvr><p:cTn id="${id()}" dur="${dur}" fill="hold"/>${tgt}` +
+      `<p:attrNameLst><p:attrName>${attr}</p:attrName></p:attrNameLst></p:cBhvr><p:tavLst>` +
+      frames.map(([tm, value]) => `<p:tav tm="${Math.round(tm * 1000)}"><p:val><p:strVal val="${value}"/></p:val></p:tav>`).join('') +
+      `</p:tavLst></p:anim>`;
 
     let preset;
+    let loop = '';
     let cls = 'entr';
     let subtype = '0';
     let body;
@@ -262,6 +269,45 @@ function timingXml(effects, shapes) {
         subtype = '16';
         body = show() + prop('ppt_w', '#ppt_w*0.86', '#ppt_w', true) + prop('ppt_h', '#ppt_h*0.86', '#ppt_h', true) + effect('fade');
         break;
+      case 'pop': {
+        // Pops up a little too large and settles: a soft bounce.
+        const frames = (attr) => keyed(attr, [[0, `#${attr}*0.3`], [60, `#${attr}*1.14`], [80, `#${attr}*0.96`], [100, `#${attr}`]]);
+        preset = 53;
+        subtype = '16';
+        body = show() + frames('ppt_w') + frames('ppt_h') + effect('fade', Math.round(dur * 0.45));
+        break;
+      }
+      case 'drop': {
+        // Falls in from above and bounces once.
+        const off = fx.offset || 0.12;
+        preset = 26;
+        body =
+          show() + effect('fade', Math.round(dur * 0.35)) + prop('ppt_x', '#ppt_x', '#ppt_x') +
+          keyed('ppt_y', [[0, `#ppt_y-${off}`], [55, '#ppt_y'], [72, `#ppt_y-${(off * 0.22).toFixed(4)}`], [86, '#ppt_y'], [93, `#ppt_y-${(off * 0.07).toFixed(4)}`], [100, '#ppt_y']]);
+        break;
+      }
+      case 'float': {
+        // Drifts gently back and forth for as long as the slide is shown.
+        preset = 0;
+        cls = 'path';
+        body =
+          `<p:animMotion origin="layout" path="M 0 0 L ${fx.dx || 0} ${fx.dy === undefined ? -0.02 : fx.dy} E" pathEditMode="relative">` +
+          `<p:cBhvr><p:cTn id="${id()}" dur="${dur}" fill="hold"/>${tgt}` +
+          `<p:attrNameLst><p:attrName>ppt_x</p:attrName><p:attrName>ppt_y</p:attrName></p:attrNameLst></p:cBhvr></p:animMotion>`;
+        loop = ' repeatCount="indefinite" accel="50000" decel="50000" autoRev="1"';
+        break;
+      }
+      case 'teeter': {
+        // Rocks a few degrees to one side and back.
+        const by = Math.round((fx.deg || 6) * 60000);
+        preset = 32;
+        cls = 'emph';
+        body =
+          `<p:animRot by="${by}"><p:cBhvr><p:cTn id="${id()}" dur="${dur}" fill="hold"/>${tgt}` +
+          `<p:attrNameLst><p:attrName>r</p:attrName></p:attrNameLst></p:cBhvr></p:animRot>`;
+        loop = `${repeat || ' repeatCount="indefinite"'} accel="50000" decel="50000" autoRev="1"`;
+        break;
+      }
       case 'fly': {
         // "Fly in" from a slide edge.
         const [sub, attr, from] = FLY[fx.dir || 'bottom'];
@@ -341,7 +387,7 @@ function timingXml(effects, shapes) {
     }
 
     return (
-      `<p:par><p:cTn id="${parId}" presetID="${preset}" presetClass="${cls}" presetSubtype="${subtype}" fill="hold"${grp} nodeType="withEffect">` +
+      `<p:par><p:cTn id="${parId}" presetID="${preset}" presetClass="${cls}" presetSubtype="${subtype}"${loop} fill="hold"${grp} nodeType="withEffect">` +
       `<p:stCondLst><p:cond delay="${fx.delay || 0}"/></p:stCondLst><p:childTnLst>${body}</p:childTnLst></p:cTn></p:par>`
     );
   });
@@ -389,9 +435,40 @@ function shapeIndex(xml) {
   return shapes;
 }
 
-/** Adds gradients, the transition and the animation timeline to one slide's XML. */
+/**
+ * Gives pictures rounded corners, a border and a soft shadow.
+ * frames: { 'picture name': { radius: 0..50 (% of the short side), border: pt, borderColor, shadow: true } }
+ */
+function framePictures(xml, frames) {
+  for (const [name, f] of Object.entries(frames || {})) {
+    const marker = `name="${name.replace(/&/g, '&amp;')}"`;
+    const at = xml.indexOf(marker);
+    if (at < 0) throw new Error(`picture to frame not found on slide: ${name}`);
+    const start = xml.lastIndexOf('<p:pic>', at);
+    const end = xml.indexOf('</p:pic>', at);
+    if (start < 0 || end < 0) throw new Error(`not a picture: ${name}`);
+    let pic = xml.slice(start, end);
+    const geom = /<a:prstGeom prst="rect"><a:avLst\/><\/a:prstGeom>/;
+    if (!geom.test(pic)) throw new Error(`picture has no rectangular geometry: ${name}`);
+    const shape = f.radius
+      ? `<a:prstGeom prst="roundRect"><a:avLst><a:gd name="adj" fmla="val ${Math.round(f.radius * 1000)}"/></a:avLst></a:prstGeom>`
+      : '<a:prstGeom prst="rect"><a:avLst/></a:prstGeom>';
+    const line = f.border
+      ? `<a:ln w="${Math.round(f.border * 12700)}"><a:solidFill><a:srgbClr val="${f.borderColor || 'FFFFFF'}"/></a:solidFill></a:ln>`
+      : '';
+    const shadow = f.shadow
+      ? `<a:effectLst><a:outerShdw blurRad="152400" dist="50800" dir="5400000" algn="t" rotWithShape="0"><a:srgbClr val="${f.shadowColor || '1F6F6A'}"><a:alpha val="${Math.round((f.shadowOpacity || 0.22) * 100000)}"/></a:srgbClr></a:outerShdw></a:effectLst>`
+      : '';
+    pic = pic.replace(geom, shape + line + shadow);
+    xml = xml.slice(0, start) + pic + xml.slice(end);
+  }
+  return xml;
+}
+
+/** Adds gradients, picture frames, the transition and the animation timeline to one slide's XML. */
 function decorateSlide(xml, spec) {
   xml = uniqueFrameIds(styleBullets(applyGradients(xml), spec.bulletColor || 'FFFFFF'));
+  xml = framePictures(xml, spec.frames);
   const extra = transitionXml(spec.transition) + timingXml(spec.effects || [], shapeIndex(xml));
   const anchor = '</p:clrMapOvr>';
   if (!xml.includes(anchor)) throw new Error('slide XML has no clrMapOvr anchor');
