@@ -465,8 +465,26 @@ function framePictures(xml, frames) {
   return xml;
 }
 
+/**
+ * PptxGenJS repeats <a:pPr> before every run of a paragraph. The schema allows it once, as
+ * the paragraph's first child, so the repeats are removed.
+ */
+function tidyParagraphs(xml) {
+  const props = /<a:pPr\b[^>]*?(?:\/>|>[\s\S]*?<\/a:pPr>)/g;
+  return xml.replace(/<a:p>([\s\S]*?)<\/a:p>/g, (whole, body) => {
+    let seen = false;
+    const tidy = body.replace(props, (m, offset) => {
+      const keep = !seen && body.slice(0, offset).trim() === '';
+      seen = true;
+      return keep ? m : '';
+    });
+    return `<a:p>${tidy}</a:p>`;
+  });
+}
+
 /** Adds gradients, picture frames, the transition and the animation timeline to one slide's XML. */
 function decorateSlide(xml, spec) {
+  xml = tidyParagraphs(xml);
   xml = uniqueFrameIds(styleBullets(applyGradients(xml), spec.bulletColor || 'FFFFFF'));
   xml = framePictures(xml, spec.frames);
   const extra = transitionXml(spec.transition) + timingXml(spec.effects || [], shapeIndex(xml));
