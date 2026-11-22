@@ -1056,7 +1056,7 @@ async function build() {
 
   // ===== 14 亚运 =========================================================================
   {
-    const s = newSlide('glitter', 'bgPink');
+    const s = newSlide('wind', 'bgPink');
     header(s, 6, '2023 年：把亚洲迎进家门', 14);
     const { pic, label } = await photo(s, 'columns', 0.6, 2.05, 5.2, 4.7, { caption: 'T4 出发层大厅', fx: 0.4 });
     s.anim(pic, 'circle', 300, 900);
