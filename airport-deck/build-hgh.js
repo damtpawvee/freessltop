@@ -448,7 +448,7 @@ async function slideContents() {
   s.pill('放映时点击任意一站，可以直接跳到对应章节', (W - 4.6) / 2, 5.98, 4.6, 0.34, C.cream, { color: C.ink, fontSize: 10.5, bold: false, name: 'Hint' });
   s.anim('Hint', 'fade', 3400, 600);
   s.text(`${pad2(2)} / ${TOTAL}`, W - MX - 0.95, 7.1, 0.95, 0.22, { fontSize: 10, color: C.tealDark, align: 'right', fontFace: FONT.num, name: 'Footer page' });
-  s.text('杭州萧山国际机场  ·  期末大作业汇报', MX, 7.1, 4, 0.22, { fontSize: 9, color: C.sub, name: 'Footer title' });
+  s.text('杭州萧山国际机场  ·  期末作业汇报', MX, 7.1, 4, 0.22, { fontSize: 9, color: C.sub, name: 'Footer title' });
   s.notes('这次汇报我们把它设计成一趟航程，一共六站：先认识机场，再看它二十多年的成长足迹，然后重点参观像荷花一样的 T4 航站楼，接着用数据看它的实力，再讲地面交通，最后是服务亮点和未来规划。');
 }
 
@@ -460,7 +460,7 @@ async function slideProfile() {
   credit(s, 'hgh_aerial', px, py + ph + 0.08, pw);
   s.pill([run('IATA  '), numRun('HGH')], px + 0.25, py + ph - 0.62, 1.55, 0.42, C.teal, { fontSize: 13, name: 'Code IATA' });
   s.pill([run('ICAO  '), numRun('ZSHC')], px + 1.95, py + ph - 0.62, 1.7, 0.42, C.pink, { fontSize: 13, name: 'Code ICAO' });
-  s.text('从空中看：两条平行跑道之间就是航站区', px, py + ph + 0.34, pw, 0.3, { fontSize: 11, color: C.sub, name: 'Profile caption' });
+  s.text('从空中俯瞰萧山机场（2023 年 11 月拍摄）', px, py + ph + 0.34, pw, 0.3, { fontSize: 11, color: C.sub, name: 'Profile caption' });
   s.anim('Profile photo', 'zoom', 400, 800);
   s.anim('Photo credit', 'fade', 1100, 400);
   s.anim('Code IATA', 'pop', 1200, 450);
@@ -472,7 +472,7 @@ async function slideProfile() {
     ['calendar', '什么时候通航', '2000 年 12 月 28 日\n一期工程建成通航'],
     ['runway', '飞行区', '4F 级 · 2 条跑道\n长 3600 米 / 3400 米'],
     ['terminal', '航站楼', '4 座（T1—T4）\n总面积 99 万平方米'],
-    ['star', '定位', '浙江省第一空中门户\n区域航空枢纽'],
+    ['star', '定位', '浙江省第一空中门户\n华东第二大航空枢纽'],
     ['people', '2025 年旅客吞吐量', '5045.9 万人次\n全国第 7 位'],
   ];
   const gx = px + pw + 0.45, gw = (W - MX - gx - 0.25) / 2, gh = 1.22;
@@ -603,7 +603,7 @@ async function slidePhases() {
   for (const [i, [tag, years, color, key, fx, fy, lines]] of phases.entries()) {
     const x = MX + i * (cw + gap);
     const top = 3.05 - i * 0.48;
-    const ph = 1.3 + i * 0.42;
+    const ph = 1.25 + i * 0.4;
     const n = `Phase ${i + 1}`;
     s.card(x, top, cw, bottom - top, { name: n + ' card', radius: 0.2 });
     await s.photo(key, x + 0.14, top + 0.14, cw - 0.28, ph, n + ' photo', { fx, fy, radius: 7, border: 0, frame: true });
@@ -611,8 +611,8 @@ async function slidePhases() {
     s.pill(tag, x + 0.26, top + ph - 0.08, 0.86, 0.38, color, { fontSize: 13, name: n + ' tag', shadow: shadow(0.2, 5, 2) });
     s.text(years, x + 1.25, top + ph + 0.24, cw - 1.45, 0.34, { fontSize: 17, color, fontFace: FONT.num, bold: true, valign: 'middle', name: n + ' years' });
     s.text(lines.map((l) => run(l, { bullet: { characterCode: '25CF', indent: 13 }, paraSpaceAfter: 5, breakLine: true })),
-      x + 0.26, top + ph + 0.72, cw - 0.5, bottom - top - ph - 0.85, { fontSize: 12, color: C.text, lineSpacingMultiple: 1.1, name: n + ' text' });
-    s.text('图：' + ['2023 年航拍的跑道与航站区', 'T3 航站楼候机厅', 'T4 航站楼出发大厅'][i], x + 0.26, bottom - 0.34, cw - 0.5, 0.2, { fontSize: 9, color: C.muted, name: n + ' caption' });
+      x + 0.26, top + ph + 0.72, cw - 0.5, bottom - top - ph - 1.1, { fontSize: 11.5, color: C.text, lineSpacingMultiple: 1.08, name: n + ' text' });
+    s.text('图：' + ['2023 年航拍的跑道与航站区', 'T3 航站楼候机厅', 'T4 航站楼出发大厅'][i], x + 0.26, bottom - 0.3, cw - 0.5, 0.2, { fontSize: 9, color: C.muted, name: n + ' caption' });
     const d = 600 + i * 550;
     s.anim(n + ' card', 'rise', d, 600, { offset: 0.08 });
     s.anim(n + ' photo', 'fade', d + 250, 500);
@@ -1341,14 +1341,14 @@ async function slideSources() {
     byArtist.set(id, (byArtist.get(id) || 0) + 1);
   }
   const lines = [
-    run(`照片共 ${usedPhotos.length} 张，全部来自维基共享资源（Wikimedia Commons），按作者署名：`, { paraSpaceAfter: 5, breakLine: true }),
-    ...[...byArtist].map(([id, count]) => run(`${id}  ${count} 张`, { bullet: { characterCode: '25CF', indent: 12 }, paraSpaceAfter: 3, breakLine: true })),
-    run('照片按版面需要做了裁剪，每页照片旁都标了作者和许可协议。', { paraSpaceAfter: 5, breakLine: true }),
+    run(`照片共 ${usedPhotos.length} 张，全部来自维基共享资源（Wikimedia Commons），按作者署名：`, { paraSpaceAfter: 4, breakLine: true }),
+    ...[...byArtist].map(([id, count]) => run(`${id}  ${count} 张`, { bullet: { characterCode: '25CF', indent: 12 }, paraSpaceAfter: 1.5, breakLine: true })),
+    run('照片按版面需要做了裁剪，每页照片旁都标了作者和许可协议。', { paraSpaceBefore: 3, breakLine: true }),
   ];
-  s.text(lines, rx + 0.28, top + 0.68, rw - 0.55, 2.5, { fontSize: 10.5, color: C.text, name: 'Credits text' });
-  s.round(rx + 0.26, top + hh - 1.04, rw - 0.52, 0.8, C.cream, { radius: 0.16, name: 'Art note box' });
-  s.image(await drawn.plane('wink'), rx + 0.36, top + hh - 0.95, 0.86, 0.614, 'Art note mascot', '小飞机吉祥物');
-  s.text('小飞机、云朵、荷花、桂花、图标和背景插画都是自己画的', rx + 1.32, top + hh - 1.04, rw - 1.72, 0.8, { fontSize: 10.5, color: C.ink, valign: 'middle', name: 'Art note text' });
+  s.text(lines, rx + 0.28, top + 0.66, rw - 0.55, 2.6, { fontSize: 10, color: C.text, name: 'Credits text' });
+  s.round(rx + 0.26, top + hh - 0.88, rw - 0.52, 0.68, C.cream, { radius: 0.16, name: 'Art note box' });
+  s.image(await drawn.plane('wink'), rx + 0.36, top + hh - 0.82, 0.78, 0.557, 'Art note mascot', '小飞机吉祥物');
+  s.text('小飞机、云朵、荷花、桂花、图标和背景插画都是自己画的', rx + 1.24, top + hh - 0.88, rw - 1.62, 0.68, { fontSize: 10, color: C.ink, valign: 'middle', name: 'Art note text' });
   s.anim('Credits card', 'rise', 800, 600);
   s.anim('Credits tag', 'pop', 1100, 400);
   s.anim('Credits text', 'fade', 1300, 600);
@@ -1384,7 +1384,7 @@ async function slideThanks() {
 
   const bw = 4.6, bx = (W - bw) / 2, by = 5.08, bh = 0.74;
   s.card(bx, by, bw, bh, { name: 'Speaker card', radius: 0.37 });
-  s.text('汇报人：', bx + 0.5, by, 1.1, bh, { fontSize: 15, bold: true, color: C.ink, valign: 'middle', name: 'Speaker label' });
+  s.text('汇报人：', bx + 0.5, by, bw - 1.0, bh, { fontSize: 15, bold: true, color: C.ink, valign: 'middle', name: 'Speaker label' });
   s.line(bx + 1.55, by + 0.52, bx + bw - 0.5, by + 0.52, C.muted, { width: 1, dash: 'solid', name: 'Speaker blank' });
   s.anim('Speaker card', 'rise', 2000, 600);
   s.anim('Speaker label', 'fade', 2300, 400);
