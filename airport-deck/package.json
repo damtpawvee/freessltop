@@ -1,10 +1,11 @@
 {
-  "name": "china-airports-deck",
+  "name": "hgh-airport-deck",
   "version": "1.0.0",
   "private": true,
-  "description": "Generator for the deck 中国大型机场 (PptxGenJS + OOXML post-processing for transitions and animations)",
+  "description": "Generator for the deck 杭州萧山国际机场 (PptxGenJS + OOXML post-processing for transitions and animations)",
   "scripts": {
-    "build": "node build.js"
+    "build": "node build-hgh.js",
+    "manifest": "node manifest-hgh.js"
   },
   "dependencies": {
     "jszip": "3.10.1",
