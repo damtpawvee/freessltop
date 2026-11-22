@@ -102,6 +102,13 @@ async function makeArt(name, svg, widthPx) {
 
 // ---------- slide API -------------------------------------------------------------------
 
+// PptxGenJS turns a line width of 0 into 1 pt; `width: 0` here means "no outline".
+const noLine = (o) => {
+  if (!o.line || o.line.width !== 0) return o;
+  const { line, ...rest } = o;
+  return rest;
+};
+
 function newSlide(transition, bg) {
   const slide = pptx.addSlide();
   slide.background = { path: ART[bg || 'bgMain'] };
@@ -113,12 +120,12 @@ function newSlide(transition, bg) {
     spec,
     shape(type, o) {
       const objectName = nm('s');
-      slide.addShape(type, { ...o, objectName });
+      slide.addShape(type, { ...noLine(o), objectName });
       return objectName;
     },
     text(t, o) {
       const objectName = nm('t');
-      slide.addText(zh(t), { fontFace: FONT.cn, color: C.text, margin: 0, ...o, objectName });
+      slide.addText(zh(t), { fontFace: FONT.cn, color: C.text, margin: 0, ...noLine(o), objectName });
       return objectName;
     },
     image(file, x, y, w, h, o = {}) {
@@ -406,6 +413,7 @@ async function build() {
       ['亚运与未来', '亚运保障 · 发展蓝图', 14, C.pink],
     ];
     const pos = stops.map((_, i) => [1.6 + i * 2.05, i % 2 === 0 ? 4.9 : 3.3]);
+    const hotspots = [];
     const end = [12.15, 1.2];
     const boxTop = 0.6;
     const r = route([[-0.5, 5.9], ...pos, end], { x: 0, y: boxTop }, end);
@@ -415,18 +423,19 @@ async function build() {
     stops.forEach(([name, desc, target, color], i) => {
       const [cx, cy] = pos[i];
       const up = i % 2 === 1;
-      const link = { slide: target, tooltip: '跳转到：' + name };
+      const link = { slide: target, tooltip: zh('跳转到：' + name) };
       const dot = s.text(String(i + 1).padStart(2, '0'), {
         x: cx - 0.46, y: cy - 0.46, w: 0.92, h: 0.92, shape: 'ellipse', fill: { color }, line: { color: C.white, width: 4 },
-        fontFace: FONT.num, fontSize: 24, bold: true, color: C.white, align: 'center', valign: 'middle', shadow: shadow(), hyperlink: link,
+        fontFace: FONT.num, fontSize: 24, bold: true, color: C.white, align: 'center', valign: 'middle', shadow: shadow(),
       });
       const ty = up ? cy - 1.42 : cy + 0.6;
-      const t = s.text(name, { x: cx - 1.1, y: ty, w: 2.2, h: 0.42, fontSize: 17, bold: true, color: C.navy, align: 'center', valign: 'middle', hyperlink: link });
+      const t = s.text(name, { x: cx - 1.1, y: ty, w: 2.2, h: 0.42, fontSize: 17, bold: true, color: C.navy, align: 'center', valign: 'middle' });
       const d = s.text(desc, { x: cx - 1.15, y: ty + 0.42, w: 2.3, h: 0.34, fontSize: 10.5, color: C.sub, align: 'center', valign: 'middle' });
       const at = 600 + i * 480;
       s.anim(dot, 'zoom', at, 400);
       s.anim(t, 'rise', at + 120, 400);
       s.anim(d, 'fade', at + 240, 400);
+      hotspots.push([cx - 1.15, up ? cy - 1.45 : cy - 0.5, link]);
     });
 
     const plane = s.art('planeOpen', end[0] - 0.75, end[1] - 0.48, 1.5);
@@ -440,6 +449,8 @@ async function build() {
     s.anim(leaf, 'zoom', 800, 500);
     s.anim(lotus, 'zoom', 1000, 500);
     s.text('“小荷号”为本组原创卡通形象', { x: 9.4, y: 7.04, w: 3.35, h: 0.28, fontSize: 9, color: C.mute, align: 'right', valign: 'middle' });
+    // invisible click areas on top of every stop (number, name and description)
+    hotspots.forEach(([x, y, link]) => s.shape('rect', { x, y, w: 2.3, h: 1.95, fill: { color: C.white, transparency: 100 }, hyperlink: link }));
     s.notes(
       '【目录】今天的汇报像一次航班，一共飞六站：先认识机场的基本情况，再看它 25 年的成长；' +
         '第三站走进最有特色的 T4 航站楼；第四站用数据看它的枢纽实力；第五站讲怎么去机场；最后是亚运会和未来规划。\n' +
@@ -1200,7 +1211,7 @@ async function build() {
     const title = s.text('数据都查得到：资料与图片来源', { x: 0.6, y: 0.9, w: 9, h: 0.72, fontSize: 30, bold: true, color: C.navy, valign: 'middle' });
     s.anim(pill, 'wipe', 0, 350, { dir: 'left' });
     s.anim(title, 'rise', 120, 500);
-    const left = card(s, 0.6, 1.95, 6.1, 4.85);
+    const left = card(s, 0.6, 1.95, 6.1, 4.3);
     const lh = s.text('数据与文字资料', { x: 0.85, y: 2.05, w: 4, h: 0.38, fontSize: 14, bold: true, color: C.blueDeep, valign: 'middle' });
     const src = [
       '中国民用航空局：历年《民航机场生产统计公报》（2001–2025 年）',
@@ -1215,9 +1226,9 @@ async function build() {
     ];
     const lt = s.text(
       src.map((t) => ({ text: t, options: { bullet: { characterCode: '25CF' }, breakLine: true } })),
-      { x: 0.85, y: 2.5, w: 5.65, h: 4.2, fontSize: 11, color: C.text, valign: 'top', paraSpaceAfter: 5, lineSpacingMultiple: 1.15 }
+      { x: 0.85, y: 2.5, w: 5.65, h: 3.65, fontSize: 11, color: C.text, valign: 'top', paraSpaceAfter: 5, lineSpacingMultiple: 1.15 }
     );
-    const right = card(s, 6.95, 1.95, 5.8, 4.85);
+    const right = card(s, 6.95, 1.95, 5.8, 4.3);
     const rh = s.text('图片（Wikimedia Commons，均已裁剪）', { x: 7.2, y: 2.05, w: 5.3, h: 0.38, fontSize: 14, bold: true, color: C.pinkDeep, valign: 'middle' });
     const used = [...new Set(USED_PHOTOS)];
     const byArtist = {};
@@ -1233,7 +1244,12 @@ async function build() {
     });
     runs.push({ text: '许可协议：CC BY-SA 4.0（creativecommons.org/licenses/by-sa/4.0）。每张原图的文件名与链接见本页备注。', options: { color: C.sub, breakLine: true } });
     runs.push({ text: '卡通插画（小飞机“小荷号”、云朵、荷花、图标）均为本组原创绘制。', options: { color: C.sub } });
-    const rt = s.text(runs, { x: 7.2, y: 2.5, w: 5.35, h: 4.2, fontSize: 11, valign: 'top', paraSpaceAfter: 6, lineSpacingMultiple: 1.15 });
+    const rt = s.text(runs, { x: 7.2, y: 2.5, w: 5.35, h: 3.65, fontSize: 11, valign: 'top', paraSpaceAfter: 6, lineSpacingMultiple: 1.15 });
+    const guide = s.art('planeWink', 0.7, 6.38, 1.0);
+    const say = bubble(s, '每个数字都有出处，欢迎大家按来源去核对～', 1.95, 6.42, 5.2, 0.5, { size: 12, bold: true, tail: [-53500, 0] });
+    s.anim(guide, 'fly', 1100, 500, { dir: 'left' });
+    s.anim(say, 'zoom', 1450, 400);
+    bob(s, guide, -0.012, 1500, 1800);
     [left, lh, lt].forEach((x, i) => s.anim(x, i === 0 ? 'rise' : 'fade', 300 + i * 150, 450));
     [right, rh, rt].forEach((x, i) => s.anim(x, i === 0 ? 'rise' : 'fade', 600 + i * 150, 450));
     footer(s, '');
